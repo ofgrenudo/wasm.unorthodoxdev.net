@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>guess the number</title>
+</head>
+<body>
+
+    <h1>guess the number.</h1>
+    <p>
+      this is a test program. it is my experiment at writing some wasm using C.
+      I was hoping to prove out a PoC where, you do a thing in html, and it sends
+      the response to the wasm function. 
+      <br><br>
+      I know there are easier frameworks for this (c# and blazor). I also know that
+      many game engines build their apps to html almost as a compatability layer so 
+      that any kind of device can use it. I think that fundamental idea is interesting
+      in its self, because it takes something that is otherwise not native to the web 
+      at all, and throws it into your DOM. im sure that there are some very obvoius 
+      handicaps with this (being your limited to the dom). But it wasnt until i went to 
+      generate a QR code with adobe, and was unable to do so because i didnt have webview2
+      installed. This immediately feels like there is maybe some wasm code thats present 
+      in my browser that generates the QR code.
+      <br><br>
+      That being said, i figured id better get into wasm programming at some point,
+      atleast to have a frame of view.
+    </p> 
+    <br><br><hr><br><br>>
+    <label for="guessInput">Whats the Number Nerd???? </label>
+    <br><br>
+    <input type="number" id="guessInput" min="1" max="10" value="5">
+    <button onclick="checkGuess()">Check your Guess</button>
+    <br>
+    <p>Result: <strong id="result"></strong></p>
+
+    <script src="index.js"></script>
+    <script>
+        function checkGuess() {
+            // ensure the Wasm module is fully loaded before calling.
+            if (typeof Module === 'undefined' || !Module.calledRun) {
+                document.getElementById('result').textContent = 'Wasm module is still loading. Please wait a moment.';
+                return;
+            }
+
+            // get the number from the HTML input field
+            const guessedNumber = parseInt(document.getElementById('guessInput').value);
+
+            if (isNaN(guessedNumber) || guessedNumber < 0 || guessedNumber > 10) {
+                document.getElementById('result').textContent = 'Please enter a number between 0 and 9.';
+                return;
+            }
+            
+            //  call the exported C function via Emscripten's ccall
+            const isCorrect = Module.ccall(
+                'check_number', // C function name
+                'number',       // return type (1 or 0)
+                ['number'],     // argument type
+                [guessedNumber] // the guess to pass
+            );
+
+            // C. Display the result based on the Wasm function's return value
+            if (isCorrect === 1) {
+                document.getElementById('result').textContent = 'Wabam, you did it! You guessed the number correctly.';
+            } else {
+                document.getElementById('result').textContent = 'Womp womp, you did not guess the number correctly. Please try again.';
+            }
+        }
+    </script>
+</body>
+</html>

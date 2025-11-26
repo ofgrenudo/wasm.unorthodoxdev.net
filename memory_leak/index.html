@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WASM Memory Leak Demo</title>
+    <style>
+        #output { border: 1px solid #000; width: 800px; height: 300px; overflow-y: scroll; padding: 10px; background-color: #333; color: #0f0; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+    <h1>WASM memory leak test</h1>
+    <p>enter the ammount of data you want to leak. my response is to do lower ammounts, and hammer the button then restart with your system monitor open.</p>
+
+    <div class="controls">
+        <label for="leakAmount">how much are you gonna leak? (MB):</label>
+        <input type="number" id="leakAmount" value="500" min="1">
+        <button onclick="startLeak()">leak!</button>
+        <button onclick="window.location.reload()">stop and reload</button>
+    </div>
+
+    <h2>WASM output consle</h2>
+    <pre id="output"></pre>
+
+    <h2>Conclusion</h2>
+    <p>
+      This test was kind of inclonclusive. At one point i was able to get to 20gb of memory used in a <code>firefoxCP isolated web content</code>; though as im
+      doing memory tests on my macbook, im learning that it is pretty good on memory management. typically, after i blow through my 8gbs of ram, it stars 
+      to really clean up the ram storage, so i might go from a 7gb load to after having a memory link, the OS seems to get aggressive on cleaning up my ram,
+      and will bring me down to a nice 3gb or 4gb.
+      <br><br>
+      something id like to do is 
+      <br><br>
+      1. test not on a macbook.
+      <br>
+      2. test not in firefox.
+    </p>
+    <script>
+        // Store the output element reference
+        const outputElement = document.getElementById('output');
+        
+        // Custom print function to redirect C/Wasm output to the HTML page
+        var Module = {
+            preRun: [],
+            postRun: [],
+            print: function(text) {
+                outputElement.innerHTML += text + '\n';
+                outputElement.scrollTop = outputElement.scrollHeight; // Auto-scroll
+            },
+            printErr: function(text) {
+                outputElement.innerHTML += `<span style="color:red;">ERR: ${text}</span>\n`;
+                outputElement.scrollTop = outputElement.scrollHeight;
+            },
+            // This flag tells the runtime to run main() (which you have configured to leak)
+            // after everything is initialized.
+            // If you wanted to only call the leak_mb function, you'd configure main() differently.
+            noInitialRun: true 
+        };
+
+        function startLeak() {
+            if (typeof Module === 'undefined' || !Module.ccall) {
+                outputElement.innerHTML += 'Wasm module is not ready yet. Please wait.\n';
+                return;
+            }
+
+            const leakMB = parseInt(document.getElementById('leakAmount').value);
+
+            if (isNaN(leakMB) || leakMB < 1) {
+                outputElement.innerHTML += 'Please enter a valid number greater than 0.\n';
+                return;
+            }
+
+            Module.ccall(
+                'leak_mb',      // Name of the C function
+                null,           // Return type (void, so null)
+                ['number'],     // Argument type (int, which maps to number)
+                [leakMB]        // The amount of MB to leak
+            );
+            
+            outputElement.innerHTML += `\n\n`;
+        }
+
+    </script>
+    <script src="index.js"></script>
+</body>
+</html>
